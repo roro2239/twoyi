@@ -13,6 +13,7 @@
     <string name="first_boot_tips3">Initialization is about to complete, please wait…</string>
     <string name="boot_failed">Twoyi boot timeout!</string>
     <string name="about_btn">About</string>
+    <string name="notices_title">Open source licenses</string>
     <string name="copy_right" translatable="false">Copyright © %1$d</string>
     <string name="help_text">Help</string>
     <string name="check_update">Check update</string>

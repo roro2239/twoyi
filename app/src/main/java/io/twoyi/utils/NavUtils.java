@@ -9,8 +9,12 @@ package io.twoyi.utils;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
-import android.view.View;
 import android.view.Window;
+
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 /**
  * @author weishu
@@ -29,12 +33,12 @@ public class NavUtils {
         }
         final int height = getNavigationHeight(activity);
 
-        activity.getWindow().getDecorView().setOnApplyWindowInsetsListener((v, windowInsets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(activity.getWindow().getDecorView(), (v, windowInsets) -> {
             boolean isShowing = false;
             int b = 0;
             if (windowInsets != null) {
-                b = windowInsets.getSystemWindowInsetBottom();
-                isShowing = (b == height);
+                b = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                isShowing = b >= height;
             }
             if (onNavigationStateListener != null && b <= height) {
                 onNavigationStateListener.onNavigationState(isShowing, b);
@@ -59,9 +63,12 @@ public class NavUtils {
     }
 
     public static void hideNavigation(Window window) {
-        window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        WindowCompat.setDecorFitsSystemWindows(window, false);
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
+        if (controller == null) {
+            return;
+        }
+        controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        controller.hide(WindowInsetsCompat.Type.systemBars());
     }
 }

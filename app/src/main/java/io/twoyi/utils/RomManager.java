@@ -16,7 +16,6 @@ import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
-import com.hzy.libp7zip.P7ZipApi;
 import com.topjohnwu.superuser.Shell;
 
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
@@ -280,10 +279,40 @@ public final class RomManager {
     }
 
     public static int extractRootfs(Context context, File rootfs7z) {
+        File outputDir = context.getDataDir();
+        try (SevenZFile zFile = new SevenZFile(rootfs7z)) {
+            SevenZArchiveEntry entry;
+            byte[] buffer = new byte[8192];
+            while ((entry = zFile.getNextEntry()) != null) {
+                if (entry.isDirectory()) {
+                    File dir = resolveExtractTarget(outputDir, entry.getName());
+                    ensureDir(dir);
+                    continue;
+                }
 
-        int cpu = Runtime.getRuntime().availableProcessors();
-        return P7ZipApi.executeCommand(String.format(Locale.US, "7z x -mmt=%d -aoa '%s' '-o%s'",
-                cpu, rootfs7z, context.getDataDir()));
+                File output = resolveExtractTarget(outputDir, entry.getName());
+                File parent = output.getParentFile();
+                if (parent != null) {
+                    ensureDir(parent);
+                }
+
+                try (OutputStream os = new BufferedOutputStream(new FileOutputStream(output))) {
+                    long remaining = entry.getSize();
+                    while (remaining > 0) {
+                        int read = zFile.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                        if (read < 0) {
+                            break;
+                        }
+                        os.write(buffer, 0, read);
+                        remaining -= read;
+                    }
+                }
+            }
+            return 0;
+        } catch (IOException e) {
+            Log.e(TAG, "extract rootfs failed: " + rootfs7z, e);
+            return -1;
+        }
     }
 
     public static boolean extractRootfsInAssets(Context context) {
@@ -375,5 +404,15 @@ public final class RomManager {
         }
         //noinspection ResultOfMethodCallIgnored
         file.mkdirs();
+    }
+
+    private static File resolveExtractTarget(File outputDir, String entryName) throws IOException {
+        File target = new File(outputDir, entryName);
+        String outputPath = outputDir.getCanonicalPath() + File.separator;
+        String targetPath = target.getCanonicalPath();
+        if (!targetPath.startsWith(outputPath) && !targetPath.equals(outputDir.getCanonicalPath())) {
+            throw new IOException("invalid archive entry path: " + entryName);
+        }
+        return target;
     }
 }

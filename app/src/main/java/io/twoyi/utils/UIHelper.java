@@ -110,7 +110,7 @@ public class UIHelper {
     }
 
     public static AlertDialog.Builder getDialogBuilder(Context context) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.ThemeOverlay_MaterialComponents_MaterialAlertDialog);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setIcon(R.mipmap.ic_launcher);
         return builder;
     }
@@ -237,9 +237,8 @@ public class UIHelper {
             return Collections.emptyList();
         }
 
-        @SuppressLint("WrongConstant")
-        List<ApplicationInfo> installedApplications = packageManager.getInstalledApplications(PackageManager.GET_UNINSTALLED_PACKAGES
-                | PackageManager.GET_DISABLED_COMPONENTS);
+        List<ApplicationInfo> installedApplications = packageManager.getInstalledApplications(
+                PackageManager.MATCH_UNINSTALLED_PACKAGES | PackageManager.GET_DISABLED_COMPONENTS);
         int userApp = 0;
         for (ApplicationInfo installedApplication : installedApplications) {
             if ((installedApplication.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {

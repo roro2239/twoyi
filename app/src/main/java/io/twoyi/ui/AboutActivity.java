@@ -247,7 +247,7 @@ public class AboutActivity extends AppCompatActivity {
 
         license.setOnClickListener(v -> {
             LicensesDialog licensesDialog = new LicensesDialog.Builder(AboutActivity.this)
-                    .setThemeResourceId(R.style.Theme_AppCompat_DayNight_Dialog_Alert)
+                    .setThemeResourceId(R.style.Theme_Twoyi)
                     .setNotices(notices)
                     .build();
             try {

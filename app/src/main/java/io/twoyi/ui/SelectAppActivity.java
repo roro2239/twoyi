@@ -15,10 +15,12 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.content.res.ColorStateList;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.TextUtils;
@@ -440,8 +442,7 @@ public class SelectAppActivity extends AppCompatActivity {
 
             List<AppItem> appItems = new ArrayList<>();
             int mask = ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP;
-            PackageInfo sys = packageManager.getPackageInfo(
-                    "android", PackageManager.GET_SIGNATURES);
+            PackageInfo sys = getPackageInfoCompat(packageManager, "android");
 
             boolean directlyAdd = true;
 
@@ -653,12 +654,14 @@ public class SelectAppActivity extends AppCompatActivity {
     public static boolean isSystemApp(PackageManager packageManager, String packageName, PackageInfo sys) {
         try {
             // Get packageinfo for target application
-            PackageInfo targetPkgInfo = packageManager.getPackageInfo(
-                    packageName, PackageManager.GET_SIGNATURES);
+            PackageInfo targetPkgInfo = getPackageInfoCompat(packageManager, packageName);
             // Get packageinfo for system package
             // Match both packageinfo for there signatures
-            return (targetPkgInfo != null && targetPkgInfo.signatures != null && sys.signatures[0]
-                    .equals(targetPkgInfo.signatures[0]));
+            Signature[] targetSignatures = getSignatures(targetPkgInfo);
+            Signature[] systemSignatures = getSignatures(sys);
+            return targetSignatures != null && systemSignatures != null
+                    && systemSignatures.length > 0 && targetSignatures.length > 0
+                    && systemSignatures[0].equals(targetSignatures[0]);
         } catch (PackageManager.NameNotFoundException e) {
             return false;
         }
@@ -672,11 +675,32 @@ public class SelectAppActivity extends AppCompatActivity {
 
         try {
             PackageManager packageManager = context.getPackageManager();
-            PackageInfo sys = packageManager.getPackageInfo(
-                    "android", PackageManager.GET_SIGNATURES);
+            PackageInfo sys = getPackageInfoCompat(packageManager, "android");
             return isSystemApp(packageManager, packageName, sys);
         } catch (PackageManager.NameNotFoundException e) {
             return false;
         }
+    }
+
+    private static PackageInfo getPackageInfoCompat(PackageManager packageManager, String packageName)
+            throws PackageManager.NameNotFoundException {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return packageManager.getPackageInfo(packageName,
+                    PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES | PackageManager.GET_META_DATA));
+        }
+        return packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES | PackageManager.GET_META_DATA);
+    }
+
+    private static Signature[] getSignatures(PackageInfo packageInfo) {
+        if (packageInfo == null) {
+            return null;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && packageInfo.signingInfo != null) {
+            if (packageInfo.signingInfo.hasMultipleSigners()) {
+                return packageInfo.signingInfo.getApkContentsSigners();
+            }
+            return packageInfo.signingInfo.getSigningCertificateHistory();
+        }
+        return packageInfo.signatures;
     }
 }

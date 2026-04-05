@@ -11,16 +11,16 @@ plugins {
 }
 
 android {
-    compileSdkVersion 31
-    buildToolsVersion "30.0.3"
+    namespace 'io.twoyi'
+    compileSdkVersion 36
+    buildToolsVersion "36.0.0"
 
     def buildSerial = new SimpleDateFormat("MMddHHmm").format(new Date())
 
     defaultConfig {
         applicationId "io.twoyi"
-        minSdkVersion 27
-        //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 27
+        minSdkVersion 31
+        targetSdkVersion 36
         versionCode 10354
         versionName "0.5.4-${buildSerial}"
 
@@ -39,19 +39,29 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    buildFeatures {
+        buildConfig true
+    }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
     }
 }
 
 task cargoBuild {
     doLast {
         exec {
-            //切换到sh文件所在的目录，执行脚本
             workingDir new File(project.projectDir, "rs")
-            //执行shell脚本 "," 传参
-            commandLine "sh", "build_rs.sh", "--release"
+            if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")) {
+                commandLine "cmd", "/c", "cargo", "xdk", "-t", "arm64-v8a", "-o", "../src/main/jniLibs", "build", "--release"
+            } else {
+                commandLine "sh", "build_rs.sh", "--release"
+            }
         }
     }
 }
@@ -89,7 +99,6 @@ dependencies {
     implementation 'org.apache.commons:commons-compress:1.20'
     implementation 'org.tukaani:xz:1.5'
 
-    implementation 'com.hzy:libp7zip:1.7.0'
 //    implementation "com.github.seven332.a7zip:extract:master-SNAPSHOT"
 //    implementation 'com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.02'
 //    implementation 'com.victor:lib:1.0.4'

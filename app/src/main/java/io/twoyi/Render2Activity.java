@@ -20,6 +20,7 @@ package io.twoyi;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -32,6 +33,8 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -64,6 +67,7 @@ public class Render2Activity extends Activity implements View.OnTouchListener {
     private View mBootLogView;
 
     private final AtomicBoolean mIsExtracting = new AtomicBoolean(false);
+    private final OnBackInvokedCallback mBackInvokedCallback = this::dispatchHomeToGuest;
 
     private final SurfaceHolder.Callback mSurfaceCallback = new SurfaceHolder.Callback() {
         @Override
@@ -132,6 +136,7 @@ public class Render2Activity extends Activity implements View.OnTouchListener {
         UITips.checkForAndroid12(this, this::bootSystem);
 
         mSurfaceView.setOnTouchListener(this);
+        registerBackCallback();
 
     }
 
@@ -260,8 +265,32 @@ public class Render2Activity extends Activity implements View.OnTouchListener {
 
     @Override
     public void onBackPressed() {
-        // super.onBackPressed();
+        dispatchHomeToGuest();
+    }
+
+    @Override
+    protected void onDestroy() {
+        unregisterBackCallback();
+        super.onDestroy();
+    }
+
+    private void dispatchHomeToGuest() {
         Renderer.sendKeycode(KeyEvent.KEYCODE_HOME);
+    }
+
+    private void registerBackCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT, mBackInvokedCallback);
+    }
+
+    private void unregisterBackCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(mBackInvokedCallback);
     }
 
     private float getBestFps() {
